@@ -281,6 +281,15 @@ Checks shall cover meaningful behavior, including:
 Version 1 shall run locally without requiring a plant connection or paid
 cloud service.
 
+### NFR-06 — Integration Readiness
+
+The analysis engine shall operate independently of the simulator,
+data source, and dashboard.
+
+It shall accept a documented input format and return structured
+results so future historian connectors and APIs can reuse the
+same analysis.
+
 ## 7. Out of Scope for Version 1
 
 - PLC control or automatic equipment shutdown
