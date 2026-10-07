@@ -1,0 +1,318 @@
+# IndustriQ — Version 1 Requirements
+
+Status: Initial draft
+Author: John Sullins
+
+## 1. Purpose
+
+IndustriQ will monitor simulated motor and VFD data, identify unusual
+operating conditions, and explain the measurements behind its findings.
+
+Version 1 will focus on one motor-driven cement-plant fan. It will establish
+a foundation for additional equipment types and real data sources.
+
+## 2. Intended User
+
+A maintenance technician or engineer who wants to:
+
+- Review equipment operating history.
+- Identify readings that exceed configured limits.
+- Compare behavior under similar operating conditions.
+- Investigate unusual current or temperature trends.
+
+## 3. Version 1 Scope
+
+Version 1 includes:
+
+- A Python equipment simulator
+- CSV data loading and validation
+- Equipment-specific configuration
+- Rule-based health assessment
+- Trend visualization
+- A baseline machine learning model
+- A simple front end
+
+Development will proceed in stages. The simulator and analysis will work
+before the front end is added.
+
+## 4. Initial Equipment and Data
+
+The initial asset will be a simulated motor-driven fan controlled by a VFD.
+
+Required measurement fields:
+
+| Field | Type | Unit / Values |
+| --- | --- | --- |
+| timestamp | Date/time | UTC |
+| equipment_id | Text | Unique asset identifier |
+| run_state | Text | STOPPED, STARTING, RUNNING, STOPPING |
+| current_a | Number | Amperes |
+| frequency_hz | Number | Hertz |
+| motor_temperature_c | Number | Degrees Celsius |
+| load_demand_pct | Number | 0–100 percent |
+
+Motor temperature will represent a simplified winding-temperature signal.
+
+Load demand will be a simulated process-demand input. It will not be
+presented as measured torque or VFD thermal-model percentage.
+
+## 5. Functional Requirements
+
+### FR-01 — Equipment Configuration
+
+The system shall store the following configuration for each asset:
+
+- Equipment ID and display name
+- Rated motor current
+- Maximum operating frequency
+- Current warning and critical limits
+- Temperature warning and critical limits
+- Alert persistence duration
+
+Warning limits shall be lower than critical limits.
+
+Configuration values are demonstration settings and shall not be
+represented as manufacturer-approved protection settings.
+
+### FR-02 — Normal-Operation Simulation
+
+The simulator shall generate a chronological sequence containing:
+
+- Stopped periods
+- Starts and stops
+- Steady operation
+- Changes in frequency and load demand
+- Small measurement variations
+- Gradual heating and cooling
+
+Current shall respond to operating conditions. Temperature shall change
+gradually rather than instantly following current.
+
+The simulation assumptions shall be documented.
+
+### FR-03 — Reproducible Simulation
+
+The simulator shall accept:
+
+- Equipment configuration
+- Start timestamp
+- Duration
+- Sampling interval
+- Random seed
+
+The same inputs and seed shall reproduce the same dataset.
+
+### FR-04 — Abnormal Scenarios
+
+The simulator shall support independently scheduled scenarios:
+
+- Increased mechanical resistance
+- Reduced cooling
+- Missing sensor readings
+- Sensor spikes
+- Stuck sensor readings
+
+Each scenario shall have a defined start time, duration, and severity
+where applicable.
+
+### FR-05 — Separate Evaluation Labels
+
+The simulator shall save injected scenario labels separately from
+measurement data.
+
+Labels shall identify the affected timestamps and scenario type.
+
+Scenario labels shall not be used as model input features.
+
+### FR-06 — CSV Loading
+
+The system shall load measurement data from CSV.
+
+It shall parse timestamps, identify equipment, and arrange readings
+chronologically for each asset.
+
+Loading shall not modify the original file.
+
+### FR-07 — Data Validation
+
+The system shall detect and report:
+
+- Missing required columns
+- Invalid timestamps
+- Non-numeric measurement values
+- Missing readings
+- Unknown equipment IDs
+- Unsupported run states
+- Duplicate equipment/timestamp pairs
+- Values outside documented valid ranges
+
+Invalid readings shall not silently become zero or be classified as normal.
+
+Validation results shall identify the affected field and row.
+
+### FR-08 — Rule-Based Assessment
+
+The system shall assess valid readings using equipment-specific limits.
+
+Equipment condition shall be one of:
+
+- NORMAL
+- WARNING
+- CRITICAL
+- UNKNOWN
+
+Operating state shall be displayed separately from equipment condition.
+
+A stopped asset shall not automatically be considered healthy. For example,
+a stopped motor may still have a high temperature.
+
+Missing or invalid required measurements shall produce UNKNOWN when a
+reliable assessment cannot be made.
+
+### FR-09 — Alert Persistence and Explanation
+
+The system shall support a configurable persistence duration for
+measurement-limit alerts.
+
+A reading shall trigger a persistent alert only after the configured
+duration is satisfied by consecutive valid readings. Data gaps shall
+interrupt that sequence.
+
+Each alert shall include:
+
+- Equipment ID
+- Affected signal
+- Observed value
+- Applicable limit
+- Start timestamp
+- Duration
+- Human-readable explanation
+
+Rule-based alerts and ML findings shall be identified separately.
+
+### FR-10 — Trend Visualization
+
+The system shall plot:
+
+- Motor current
+- VFD output frequency
+- Motor temperature
+- Load demand
+
+Plots shall include timestamps and units.
+
+Users shall be able to select an equipment asset and time range.
+
+### FR-11 — Baseline Machine Learning Model
+
+The first model shall estimate expected motor current from operating
+conditions such as frequency and load demand.
+
+Initial training shall use designated normal RUNNING periods.
+
+The system shall calculate the difference between observed and predicted
+current and identify sustained unusual deviations.
+
+The model shall flag unusual behavior without claiming a confirmed
+mechanical fault.
+
+### FR-12 — Model Evaluation
+
+Training, validation, and test data shall be separated by simulation run
+or chronological period.
+
+Randomly mixing adjacent readings across these sets shall be avoided.
+
+Preprocessing shall be fitted using training data only.
+
+Regression evaluation shall include MAE and RMSE.
+
+Anomaly evaluation shall include precision, recall, and false alerts on
+normal operation, using the separate scenario labels.
+
+Results shall document which scenarios and operating conditions were tested.
+
+### FR-13 — Front End
+
+The front end shall display:
+
+- Equipment name
+- Timestamp of the displayed reading
+- Operating state
+- Rule-based condition
+- Latest measurement values and units
+- Alert explanations
+- Trend plots
+- ML predictions and anomaly findings, when available
+
+Historical or simulated data shall be clearly identified.
+
+## 6. Nonfunctional Requirements
+
+### NFR-01 — Understandable Structure
+
+Simulation, data validation, health rules, model training, and presentation
+shall be separated into modules.
+
+### NFR-02 — Reproducibility
+
+Dataset generation settings and model evaluation settings shall be retained
+so results can be reproduced.
+
+### NFR-03 — Traceability
+
+The project shall use Git to track incremental development.
+
+The repository shall document setup instructions, assumptions, and completed
+milestones.
+
+### NFR-04 — Verification
+
+Checks shall cover meaningful behavior, including:
+
+- Reproducible simulation
+- Invalid-data handling
+- Equipment-specific limits
+- Alert persistence
+- Separation of evaluation labels from model inputs
+
+### NFR-05 — Local Operation
+
+Version 1 shall run locally without requiring a plant connection or paid
+cloud service.
+
+## 7. Out of Scope for Version 1
+
+- PLC control or automatic equipment shutdown
+- Live historian integration
+- High-frequency current waveform analysis
+- Vibration FFT and bearing-frequency analysis
+- Confirmed fault diagnosis
+- Remaining-useful-life predictions
+- Production deployment
+- User accounts and access management
+
+## 8. Completion Criteria
+
+Version 1 is complete when a user can:
+
+1. Generate a reproducible dataset for the example fan.
+2. Load it and review data-quality findings.
+3. View operating state and explained rule-based alerts.
+4. Explore measurement trends.
+5. Train and evaluate the baseline current model.
+6. Compare model findings with injected scenarios.
+7. View the results through a simple front end.
+
+## 9. First Development Milestone
+
+The first milestone includes only:
+
+- Repository structure
+- Equipment configuration
+- Normal-operation simulator
+- CSV output
+- Basic plots for inspecting generated behavior
+
+Abnormal scenarios, health rules, ML, and the front end will follow after
+normal operation has been reviewed.
