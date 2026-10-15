@@ -11,4 +11,4 @@ class EquipmentReading:
     frequency_hz: float
     motor_temperature_c: float
     load_demand_pct: float
-    actual_speed_rpm: float | None = None
+    speed_feedback_rpm: float | None = None
